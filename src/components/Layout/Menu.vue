@@ -274,6 +274,13 @@ const menuOptions = computed<MenuOption[] | MenuGroupOption[]>(() => {
       ]
     : [
         {
+          key: "streaming",
+          link: "streaming",
+          label: "流媒体",
+          show: settingStore.streamingEnabled,
+          icon: renderIcon("Stream"),
+        },
+        {
           key: "local",
           link: "local",
           label: "音乐库",

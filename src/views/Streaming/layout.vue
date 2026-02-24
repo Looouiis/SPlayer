@@ -68,6 +68,21 @@
         </Transition>
       </n-flex>
       <n-flex class="right" justify="end">
+        <!-- 模糊搜索 -->
+        <n-input
+          v-if="true"
+          v-model:value="searchValue"
+          :input-props="{ autocomplete: 'off' }"
+          class="search"
+          placeholder="模糊搜索"
+          clearable
+          round
+          @input="listSearch"
+        >
+          <template #prefix>
+            <SvgIcon name="Search" />
+          </template>
+        </n-input>
         <!-- Tab 切换 -->
         <n-dropdown
           v-if="!isLargeDesktop"
@@ -129,9 +144,10 @@ import type { SongType } from "@/types/main";
 import type { DropdownOption } from "naive-ui";
 import { useStreamingStore, useSettingStore } from "@/stores";
 import { useMobile } from "@/composables/useMobile";
-import { renderIcon } from "@/utils/helper";
+import { fuzzySearch, renderIcon } from "@/utils/helper";
 import { usePlayerController } from "@/core/player/PlayerController";
 import { openStreamingServerConfig, openSetting } from "@/utils/modal";
+import { debounce } from "lodash-es";
 
 const router = useRouter();
 const streamingStore = useStreamingStore();
@@ -140,6 +156,23 @@ const player = usePlayerController();
 const { isLargeDesktop } = useMobile();
 
 const loading = ref<boolean>(false);
+
+// 模糊搜索数据
+const searchValue = ref<string>("");
+const searchResult = ref<SongType[]>([]);
+
+// 模糊搜索（防抖处理）
+const listSearch = debounce((val: string) => {
+  val = val.trim();
+  if (!val) {
+    searchResult.value = [];
+    console.log(searchResult.value);
+    return;
+  }
+  // 基于文件夹过滤后的数据进行搜索
+  let res = fuzzySearch(val, streamingStore.songs.value);
+  searchResult.value = [...new Map(res.map(song => [song.id, song])).values()];
+}, 300);
 
 // 路由类型
 const streamingType = ref<string>((router.currentRoute.value?.name as string) || "streaming-songs");
@@ -178,6 +211,9 @@ const showEmptyState = computed<boolean>(() => {
 
 // 列表数据
 const listData = computed<SongType[]>(() => {
+  if (searchValue.value && searchResult.value.length) {
+    return searchResult.value;
+  }
   return streamingStore.songs.value;
 });
 
